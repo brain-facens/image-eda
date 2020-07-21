@@ -63,9 +63,9 @@ class ImageEDA:
             self.dr_object = None
             self.dataset_name = dataset_name
             self.y = None
-            self.load_model()
             self.load_dr_object()
             self.store_sample_labels()
+        self.load_model()
     
     def store_sample_labels(self):
         input_data = pd.read_csv(self.annotations_path)
