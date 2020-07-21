@@ -108,6 +108,12 @@ class ImageEDA:
 
             for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
                 image = PIL.Image.open(os.path.join(self.image_path,  image_path))
+
+                if len(np.array(image).shape) != 3:
+                    rgbimg = PIL.Image.new("RGB", image.size)
+                    rgbimg.paste(image)
+                    image = rgbimg
+
                 image = image.resize( self.get_input_shape()[:-1] )
                 image = np.array(image)
                 images[j] = image
