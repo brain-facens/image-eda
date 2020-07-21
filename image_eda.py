@@ -133,6 +133,12 @@ class ImageEDA:
         
             for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
                 image = PIL.Image.open(os.path.join(self.image_path,  image_path))
+
+                if len(np.array(image).shape) != 3:
+                    rgbimg = PIL.Image.new("RGB", image.size)
+                    rgbimg.paste(image)
+                    image = rgbimg
+
                 image = image.resize( self.get_input_shape()[:-1] ) 
                 image = np.array(image)
                 images[j] = image
@@ -180,7 +186,7 @@ class ImageEDA:
         self.dr_object = data["dr_object"]
         self.transformed_data = data["transformed_data"]
 
-    def save_output(self, transformed_data, ipca):
+    def save_output(self):
         """Write the output into a pickle file"""
         with open(f"{self.dataset_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle",
                   'wb') as out_file:
