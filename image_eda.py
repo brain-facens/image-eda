@@ -8,7 +8,8 @@ from sklearn.decomposition import PCA, IncrementalPCA
 import time
 import glob
 import pickle 
-from visualization import fashion_scatter
+from visualization import fashion_scatter, plot_components
+from utils import normalize_data
 
 
 class ImageEDA:
@@ -16,7 +17,7 @@ class ImageEDA:
     This class helps to perform the Exploratory Data Analisys on images
     using a pre-trained model to extract the feature layers and plot 
     the result with a dimensionality reduction algorithm.
-    After the fitting and transform the dataset, an output file is 
+    After fitting and transforming the dataset, an output file is 
     generated as a pickle file to further analysis without the need
     of reprocessing the whole dataset.
 
@@ -36,7 +37,7 @@ class ImageEDA:
     dr_method : str
         The name of the dimensionality reduction method (PCA, t-SNE).
     batch_size : int
-        Number of samples being processes at the sime time for fitting
+        Number of samples being processed at the sime time for fitting
         in memory.
     n_components : int
         Number of components that the dr_method will be using to the 
@@ -63,9 +64,10 @@ class ImageEDA:
             self.dr_object = None
             self.dataset_name = dataset_name
             self.y = None
-            self.load_model()
             self.load_dr_object()
             self.store_sample_labels()
+            self.feature_map = None
+        self.load_model()
     
     def store_sample_labels(self):
         input_data = pd.read_csv(self.annotations_path)
@@ -88,6 +90,30 @@ class ImageEDA:
 
         return self.model.layers[0].output.shape[1:]
 
+    def predict_feature_map(self):
+        input_data = pd.read_csv(self.annotations_path)
+        n_samples = input_data.shape[0]
+        self.feature_map = np.empty((n_samples,) + self.model.layers[-1].output.shape[1:])
+
+        for i in range(0, n_samples//self.batch_size):
+            # TODO: get dtype from model
+            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
+
+            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
+                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
+
+                if len(np.array(image).shape) != 3:
+                    rgbimg = PIL.Image.new("RGB", image.size)
+                    rgbimg.paste(image)
+                    image = rgbimg
+
+                image = image.resize( self.get_input_shape()[:-1] )
+                image = np.array(image)
+                images[j] = image
+            self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
+
+        self.feature_map = normalize_data(self.feature_map)
+
     def partial_fit(self):
         """
         Fit the dr_method on the data on batches based on the batch_size
@@ -103,15 +129,8 @@ class ImageEDA:
         n_samples = input_data.shape[0]
 
         for i in range(0, n_samples//self.batch_size):
-            # TODO: get dtype from model
-            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
-
-            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
-                image = image.resize( self.get_input_shape()[:-1] )
-                image = np.array(image)
-                images[j] = image
-            self.dr_object.partial_fit( self.model(images) )
+            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+            self.dr_object.partial_fit( partial_feature_map )
 
     def transform(self):
         """
@@ -123,15 +142,8 @@ class ImageEDA:
         n_samples = input_data.shape[0]
 
         for i in range(0, n_samples//self.batch_size):
-            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
-        
-            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
-                image = image.resize( self.get_input_shape()[:-1] ) 
-                image = np.array(image)
-                images[j] = image
-            
-            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( self.model(images) )
+            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( partial_feature_map )
 
     def load_dr_object(self):
         """Instantiate dr_object based on the selected dr_method"""
@@ -174,7 +186,7 @@ class ImageEDA:
         self.dr_object = data["dr_object"]
         self.transformed_data = data["transformed_data"]
 
-    def save_output(self, transformed_data, ipca):
+    def save_output(self):
         """Write the output into a pickle file"""
         with open(f"{self.dataset_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle",
                   'wb') as out_file:
@@ -189,15 +201,18 @@ class ImageEDA:
             obj["y"] = self.y
             pickle.dump(obj, out_file)
 
-    def visualize(self):
+    def visualize(self, file):
         """Plot the transformed_data and show their classes"""
         # TODO: make configurable file with classes and associated ids
-        classes = {
-            "car": 0,
-            "motorbike": 1,
-            "truck": 2,
-            "bus": 3
-        }
+        classes = {}
+
+        classes_file = open(file)
+        
+        for index, line in enumerate(classes_file.readlines()):
+            classes[line.rstrip('\n')] = index
+
+        classes_file.close()
+
         # TODO: extend code to n_components
         pca_df = pd.DataFrame(columns = ['pca1','pca2'])
         pca_df['pca1'] = self.transformed_data[:,0]
@@ -207,3 +222,7 @@ class ImageEDA:
 
         fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
 
+    def visualize_components(self, n_components=10):
+        """Plot number of components vs cummulative variance"""
+        pca = PCA().fit(self.feature_map)
+        plot_components(pca, n_components)
