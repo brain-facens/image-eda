@@ -7,7 +7,7 @@ import tensorflow as tf
 from sklearn.decomposition import PCA, IncrementalPCA
 import time
 import glob
-import pickle 
+import pickle
 from visualization import fashion_scatter
 
 
@@ -16,7 +16,7 @@ class ImageEDA:
     This class helps to perform the Exploratory Data Analisys on images
     using a pre-trained model to extract the feature layers and plot 
     the result with a dimensionality reduction algorithm.
-    After the fitting and transform the dataset, an output file is 
+    After fitting and transforming the dataset, an output file is 
     generated as a pickle file to further analysis without the need
     of reprocessing the whole dataset.
 
@@ -36,7 +36,7 @@ class ImageEDA:
     dr_method : str
         The name of the dimensionality reduction method (PCA, t-SNE).
     batch_size : int
-        Number of samples being processes at the sime time for fitting
+        Number of samples being processed at the sime time for fitting
         in memory.
     n_components : int
         Number of components that the dr_method will be using to the 
@@ -189,15 +189,17 @@ class ImageEDA:
             obj["y"] = self.y
             pickle.dump(obj, out_file)
 
-    def visualize(self):
+    def visualize(self, file):
         """Plot the transformed_data and show their classes"""
         # TODO: make configurable file with classes and associated ids
-        classes = {
-            "car": 0,
-            "motorbike": 1,
-            "truck": 2,
-            "bus": 3
-        }
+        classes = {}
+
+        f = open(file).readlines()
+        
+        for index, line in enumerate(f):
+            classes[line.rstrip('\n')] = index
+
+
         # TODO: extend code to n_components
         pca_df = pd.DataFrame(columns = ['pca1','pca2'])
         pca_df['pca1'] = self.transformed_data[:,0]
