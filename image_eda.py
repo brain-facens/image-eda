@@ -9,6 +9,7 @@ import time
 import glob
 import pickle 
 from visualization import fashion_scatter
+from utils import normalize_data
 
 
 class ImageEDA:
@@ -111,7 +112,7 @@ class ImageEDA:
                 images[j] = image
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
-        # TODO: normalize feature map before applying PCA
+        self.feature_map = normalize_data(self.feature_map)
 
     def partial_fit(self):
         """
