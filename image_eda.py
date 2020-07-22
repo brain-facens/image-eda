@@ -194,11 +194,12 @@ class ImageEDA:
         # TODO: make configurable file with classes and associated ids
         classes = {}
 
-        f = open(file).readlines()
+        classes_file = open(file)
         
-        for index, line in enumerate(f):
+        for index, line in enumerate(classes_file.readlines()):
             classes[line.rstrip('\n')] = index
 
+        classes_file.close()
 
         # TODO: extend code to n_components
         pca_df = pd.DataFrame(columns = ['pca1','pca2'])
