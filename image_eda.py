@@ -169,7 +169,8 @@ class ImageEDA:
 
     def load_output_file(self, output_pickle:str):
         """Open the output_pickle file and feed the object"""
-        data = pickle.load( open(output_pickle, "rb") )
+        with open(output_pickle, "rb") as output_file:
+            data = pickle.load(output_file)
         self.dataset_name = data["dataset_name"]
         self.model_name = data["model_name"]
         self.dr_method = data["dr_method"]
@@ -181,8 +182,10 @@ class ImageEDA:
 
     def load_output_object(self):
         """"Open the pickle file and feed the object"""
-        data = pickle.load( open(f"{self.dataset_name}_{self.model_name}\
-                                 _{self.dr_method}_{self.n_components}.pickle", "rb") )
+        with open(open(f"{self.dataset_name}_{self.model_name}\
+                        _{self.dr_method}_{self.n_components}.pickle", 
+                        "rb")) as output_file:
+            data = pickle.load(output_file)
         self.dr_object = data["dr_object"]
         self.transformed_data = data["transformed_data"]
 
