@@ -65,6 +65,7 @@ class ImageEDA:
             self.y = None
             self.load_dr_object()
             self.store_sample_labels()
+            self.feature_map = None
         self.load_model()
     
     def store_sample_labels(self):
@@ -88,19 +89,10 @@ class ImageEDA:
 
         return self.model.layers[0].output.shape[1:]
 
-    def partial_fit(self):
-        """
-        Fit the dr_method on the data on batches based on the batch_size
-        parameter. 
-        The data is read based on the annotations_path and image_path 
-        attributes. After the fitting, the dr_object parameter will 
-        be able to transform the data later.
-        """
-        if self.dr_method != "pca":
-            raise Exception(f"{self.dr_method} does not support batch fit.")
-
+    def predict_feature_map(self):
         input_data = pd.read_csv(self.annotations_path)
         n_samples = input_data.shape[0]
+        self.feature_map = np.empty((n_samples,) + self.model.layers[-1].output.shape[1:])
 
         for i in range(0, n_samples//self.batch_size):
             # TODO: get dtype from model
@@ -117,7 +109,27 @@ class ImageEDA:
                 image = image.resize( self.get_input_shape()[:-1] )
                 image = np.array(image)
                 images[j] = image
-            self.dr_object.partial_fit( self.model(images) )
+            self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
+
+        # TODO: normalize feature map before applying PCA
+
+    def partial_fit(self):
+        """
+        Fit the dr_method on the data on batches based on the batch_size
+        parameter. 
+        The data is read based on the annotations_path and image_path 
+        attributes. After the fitting, the dr_object parameter will 
+        be able to transform the data later.
+        """
+        if self.dr_method != "pca":
+            raise Exception(f"{self.dr_method} does not support batch fit.")
+
+        input_data = pd.read_csv(self.annotations_path)
+        n_samples = input_data.shape[0]
+
+        for i in range(0, n_samples//self.batch_size):
+            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+            self.dr_object.partial_fit( partial_feature_map )
 
     def transform(self):
         """
@@ -129,21 +141,8 @@ class ImageEDA:
         n_samples = input_data.shape[0]
 
         for i in range(0, n_samples//self.batch_size):
-            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
-        
-            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
-
-                if len(np.array(image).shape) != 3:
-                    rgbimg = PIL.Image.new("RGB", image.size)
-                    rgbimg.paste(image)
-                    image = rgbimg
-
-                image = image.resize( self.get_input_shape()[:-1] ) 
-                image = np.array(image)
-                images[j] = image
-            
-            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( self.model(images) )
+            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( partial_feature_map )
 
     def load_dr_object(self):
         """Instantiate dr_object based on the selected dr_method"""
