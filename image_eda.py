@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA, IncrementalPCA
 import time
 import glob
 import pickle 
-from visualization import fashion_scatter
+from visualization import fashion_scatter, plot_components
 from utils import normalize_data
 
 
@@ -219,3 +219,7 @@ class ImageEDA:
 
         fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
 
+    def visualize_components(self, n_components=10):
+        """Plot number of components vs cummulative variance"""
+        pca = PCA().fit(self.feature_map)
+        plot_components(pca, n_components)
