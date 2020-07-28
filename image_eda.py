@@ -9,7 +9,7 @@ import time
 import glob
 import pickle 
 from visualization import fashion_scatter, plot_components
-from utils import normalize_data
+from utils import normalize_data, crop_box
 
 
 class ImageEDA:
@@ -91,6 +91,7 @@ class ImageEDA:
         return self.model.layers[0].output.shape[1:]
 
     def predict_feature_map(self):
+        """Pass the dataset through the selected model and store the output"""
         input_data = pd.read_csv(self.annotations_path)
         n_samples = input_data.shape[0]
         self.feature_map = np.empty((n_samples,) + self.model.layers[-1].output.shape[1:])
@@ -100,7 +101,9 @@ class ImageEDA:
             images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
 
             for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
+                image = PIL.Image.open(os.path.join(self.image_path, image_path))
+                _, x, y, w, h, _ = input_data.iloc[j,:]
+                image = crop_box(image, x, y, w, h)
 
                 if len(np.array(image).shape) != 3:
                     rgbimg = PIL.Image.new("RGB", image.size)
