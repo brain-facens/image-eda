@@ -1,10 +1,12 @@
 from sklearn.preprocessing import MinMaxScaler
 
 def normalize_data(data):
+    """Normalize data between range 0, 1"""
     scaler = MinMaxScaler()
     return scaler.fit_transform(data)
 
 def crop_box(image, x, y, w, h):
+    """Create a centralized squared bounding box based on largest size"""
     if w > h:
         h_diff = int((w - h)/2)
         if y - h_diff > 0:

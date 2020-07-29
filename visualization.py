@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 
 def plot_components(pca, n_components):
+    """Plot number of components vs cummulative variance"""
     plt.rcParams["figure.figsize"] = (12,6)
 
     fig, ax = plt.subplots()
@@ -25,6 +26,7 @@ def plot_components(pca, n_components):
     plt.show()
 
 def fashion_scatter(x, colors, num_classes):
+    """Plot transformed data with respective labels"""
     # choose a color palette with seaborn.
     # num_classes = len(np.unique(colors))
     palette = np.array(sns.color_palette("hls", num_classes))
