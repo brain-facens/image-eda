@@ -10,6 +10,7 @@ import glob
 import pickle 
 from visualization import fashion_scatter, plot_components
 from utils import normalize_data, crop_box
+from data_sources import DataSource
 
 
 class ImageEDA:
@@ -44,7 +45,7 @@ class ImageEDA:
         data analysis.
     """
 
-    def __init__(self, dataset_name:str, image_path:str, annotations_path:str = "",
+    def __init__(self, dataset_name:str, image_path:str, annotations:DataSource = None,
                  model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100, 
                  n_components:int = 2):
         """
@@ -56,7 +57,7 @@ class ImageEDA:
             self.load_output(pickle_path)
         else:
             self.image_path = image_path
-            self.annotations_path = annotations_path
+            self.annotations = annotations
             self.model_name = model
             self.dr_method = dr_method
             self.batch_size = batch_size
@@ -70,8 +71,7 @@ class ImageEDA:
         self.load_model()
     
     def store_sample_labels(self):
-        input_data = pd.read_csv(self.annotations_path)
-        self.y = input_data["label"].values
+        self.y = self.annotations.get_column_values("label")
         self.transformed_data = np.empty((self.y.shape[0], self.n_components))
 
     def __str__(self):
@@ -92,29 +92,23 @@ class ImageEDA:
 
     def predict_feature_map(self):
         """Pass the dataset through the selected model and store the output"""
-        input_data = pd.read_csv(self.annotations_path)
-        n_samples = input_data.shape[0]
+        n_samples = self.annotations.count()
         self.feature_map = np.empty((n_samples,) + self.model.layers[-1].output.shape[1:])
 
-        for i in range(0, n_samples//self.batch_size):
+        input_shape = self.get_input_shape()
+        size = input_shape[:-1]
+        images_shape = (self.batch_size,) + input_shape
+
+        def process_batch(i, batch):
             # TODO: get dtype from model
-            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
+            images = np.empty(images_shape, dtype=np.int)
 
-            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path, image_path))
-                _, x, y, w, h, _ = input_data.iloc[j,:]
-                image = crop_box(image, x, y, w, h)
+            for j, data in enumerate(batch):
+                images[j] = self.annotations.load_image(data.image_path, data.x, data.y, data.w, data.h, size)
 
-                if len(np.array(image).shape) != 3:
-                    rgbimg = PIL.Image.new("RGB", image.size)
-                    rgbimg.paste(image)
-                    image = rgbimg
-
-                image = image.resize( self.get_input_shape()[:-1] )
-                image = np.array(image)
-                images[j] = image
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
+        self.annotations.batch_process(self.batch_size, process_batch)
         self.feature_map = normalize_data(self.feature_map)
 
     def partial_fit(self):
@@ -128,8 +122,7 @@ class ImageEDA:
         if self.dr_method != "pca":
             raise Exception(f"{self.dr_method} does not support batch fit.")
 
-        input_data = pd.read_csv(self.annotations_path)
-        n_samples = input_data.shape[0]
+        n_samples = self.annotations.count()
 
         for i in range(0, n_samples//self.batch_size):
             partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
@@ -141,8 +134,7 @@ class ImageEDA:
         already be fitted previously.
         Feed the transformed_data attribute for further visualization.
         """
-        input_data = pd.read_csv(self.annotations_path)
-        n_samples = input_data.shape[0]
+        n_samples = self.annotations.count()
 
         for i in range(0, n_samples//self.batch_size):
             partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
