@@ -27,12 +27,10 @@ class ImageEDA:
     dataset_name : str
         The name of the dataset being analysed, it is used to generate
         the output file.
-    image_path : str
-        The full path for the dataset images. They are not read 
-        recursively.
-    annotations_path : str
-        The full path to the csv file containing the boxes and labels 
-        in the format (image_path, x, y, w, h, label)
+    data_source : DataSource
+        The DataSource instance with the path to the dataset images and
+        the csv file containing the boxes and labels in the format
+        (image_path, x, y, w, h, label)
     model : str
         The name of the pre-trained model to be used.
     dr_method : str
@@ -43,21 +41,21 @@ class ImageEDA:
     n_components : int
         Number of components that the dr_method will be using to the 
         data analysis.
+    pickle_path : str
+        The path for the pickle output file
     """
 
-    def __init__(self, dataset_name:str, image_path:str, annotations:DataSource = None,
+    def __init__(self, dataset_name:str, data_source:DataSource = None,
                  model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100, 
-                 n_components:int = 2):
+                 n_components:int = 2, pickle_path:str = ""):
         """
         Initialize ImageEDA object based on a pre-existing file for 
         visualization or construct the object for further processing.
         """
-        if "pickle" in image_path:
-            pickle_path = image_path
+        if pickle_path:
             self.load_output(pickle_path)
         else:
-            self.image_path = image_path
-            self.annotations = annotations
+            self.data_source = data_source
             self.model_name = model
             self.dr_method = dr_method
             self.batch_size = batch_size
@@ -71,7 +69,7 @@ class ImageEDA:
         self.load_model()
     
     def store_sample_labels(self):
-        self.y = self.annotations.get_column_values("label")
+        self.y = self.data_source.get_column_values("label")
         self.transformed_data = np.empty((self.y.shape[0], self.n_components))
 
     def __str__(self):
@@ -92,7 +90,7 @@ class ImageEDA:
 
     def predict_feature_map(self):
         """Pass the dataset through the selected model and store the output"""
-        n_samples = self.annotations.count()
+        n_samples = self.data_source.count()
         self.feature_map = np.empty((n_samples,) + self.model.layers[-1].output.shape[1:])
 
         input_shape = self.get_input_shape()
@@ -104,25 +102,25 @@ class ImageEDA:
             images = np.empty(images_shape, dtype=np.int)
 
             for j, data in enumerate(batch):
-                images[j] = self.annotations.load_image(data.image_path, data.x, data.y, data.w, data.h, size)
+                images[j] = self.data_source.load_image(data.image_path, data.x, data.y, data.w, data.h, size)
 
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
-        self.annotations.batch_process(self.batch_size, process_batch)
+        self.data_source.batch_process(self.batch_size, process_batch)
         self.feature_map = normalize_data(self.feature_map)
 
     def partial_fit(self):
         """
         Fit the dr_method on the data on batches based on the batch_size
         parameter. 
-        The data is read based on the annotations_path and image_path 
-        attributes. After the fitting, the dr_object parameter will 
-        be able to transform the data later.
+        The data is read based on the data source annotation attributes.
+        After the fitting, the dr_object parameter will be able to
+        transform the data later.
         """
         if self.dr_method != "pca":
             raise Exception(f"{self.dr_method} does not support batch fit.")
 
-        n_samples = self.annotations.count()
+        n_samples = self.data_source.count()
 
         for i in range(0, n_samples//self.batch_size):
             partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
@@ -134,7 +132,7 @@ class ImageEDA:
         already be fitted previously.
         Feed the transformed_data attribute for further visualization.
         """
-        n_samples = self.annotations.count()
+        n_samples = self.data_source.count()
 
         for i in range(0, n_samples//self.batch_size):
             partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]

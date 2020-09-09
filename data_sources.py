@@ -1,9 +1,11 @@
+import os
 import PIL
 import PIL.Image
 import numpy as np
 from utils import crop_box
 
 class DataSource:
+
     def count(self):
         """
         Returns the amount of rows
@@ -20,10 +22,7 @@ class DataSource:
         """
         raise Exception("Not implemented")
 
-    def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
-        # Loads the image file
-        image = PIL.Image.open(file_path)
-
+    def __process_image(self, image, crop_x, crop_y, crop_w, crop_h, size):
         # Crops it
         image = crop_box(image, crop_x, crop_y, crop_w, crop_h)
 
@@ -36,12 +35,21 @@ class DataSource:
         # Converts it into a numpy array
         return np.array(image)
 
+    def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
+        """
+        Loads the image file, crops and resizes it to the specified parameters
+        """
+        raise Exception("Not implemented")
+
+        
+
 class LocalCsvSource(DataSource):
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, image_path):
         import pandas as pd
         
         self.file_path = file_path
+        self.image_path = image_path
         self.data = pd.read_csv(self.file_path)
 
     def count(self):
@@ -54,11 +62,19 @@ class LocalCsvSource(DataSource):
         for i in range(0, self.count()//batch_size):
             process(i, self.data.iloc[i*batch_size : (i+1)*batch_size])
 
+    def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
+        # Loads the image file
+        image = PIL.Image.open(os.path.join(self.image_path, file_path))
+
+        # Crops and resizes the image
+        return self.__process_image(image, crop_x, crop_y, crop_w, crop_h, size)
+
 class SparkSource(DataSource):
     import pyspark.sql as spark
 
-    def __init__(self, spark_session: spark.SparkSession, file_path):
+    def __init__(self, spark_session: spark.SparkSession, file_path, image_path):
         self.file_path = file_path
+        self.image_path = image_path
         self.data = spark_session.read.format("csv").option("header", "true").load(self.file_path)
 
     def count(self):
@@ -88,3 +104,10 @@ class SparkSource(DataSource):
         # Groups the batches by the specified size
         # Runs the process function with the whole batch as an in-memory list
         self.data.foreachPartition(lambda chain : (process(i, batch) for i, batch in enumerate(self.__partition(chain, batch_size))))
+
+    def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
+        # Loads the image file
+        image = PIL.Image.open(os.path.join(self.image_path, file_path))
+
+        # Crops and resizes the image
+        return self.__process_image(image, crop_x, crop_y, crop_w, crop_h, size)

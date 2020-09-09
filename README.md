@@ -10,7 +10,7 @@ The image-eda package works on 5 steps:
 ### Creating the ImageEDA object
 
 ```python
-image_eda = ImageEDA("dataset_name", "path/to/images", LocalCsvSource("path/to/annotations.csv"))
+image_eda = ImageEDA("dataset_name", LocalCsvSource("path/to/annotations.csv", "path/to/images"))
 ```
 
 ### Extract feature maps
