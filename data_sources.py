@@ -60,7 +60,7 @@ class LocalCsvSource(DataSource):
 
     def batch_process(self, batch_size, process):
         for i in range(0, self.count()//batch_size):
-            process(i, self.data.iloc[i*batch_size : (i+1)*batch_size])
+            process(i, self.data.iloc[i*batch_size : (i+1)*batch_size].itertuples())
 
     def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
         # Loads the image file
