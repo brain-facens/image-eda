@@ -22,7 +22,7 @@ class DataSource:
         """
         raise Exception("Not implemented")
 
-    def __process_image(self, image, crop_x, crop_y, crop_w, crop_h, size):
+    def process_image(self, image, crop_x, crop_y, crop_w, crop_h, size):
         # Crops it
         image = crop_box(image, crop_x, crop_y, crop_w, crop_h)
 
@@ -67,7 +67,7 @@ class LocalCsvSource(DataSource):
         image = PIL.Image.open(os.path.join(self.image_path, file_path))
 
         # Crops and resizes the image
-        return super().__process_image(image, crop_x, crop_y, crop_w, crop_h, size)
+        return self.process_image(image, crop_x, crop_y, crop_w, crop_h, size)
 
 class SparkSource(DataSource):
     import pyspark.sql as spark
@@ -110,4 +110,4 @@ class SparkSource(DataSource):
         image = PIL.Image.open(os.path.join(self.image_path, file_path))
 
         # Crops and resizes the image
-        return super().__process_image(image, crop_x, crop_y, crop_w, crop_h, size)
+        return self.process_image(image, crop_x, crop_y, crop_w, crop_h, size)
