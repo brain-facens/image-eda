@@ -7,8 +7,10 @@ import tensorflow as tf
 from sklearn.decomposition import PCA, IncrementalPCA
 import time
 import glob
-import pickle
-from visualization import fashion_scatter
+import pickle 
+from visualization import fashion_scatter, plot_components
+from utils import normalize_data, crop_box
+from data_sources import DataSource
 
 
 class ImageEDA:
@@ -25,12 +27,10 @@ class ImageEDA:
     dataset_name : str
         The name of the dataset being analysed, it is used to generate
         the output file.
-    image_path : str
-        The full path for the dataset images. They are not read 
-        recursively.
-    annotations_path : str
-        The full path to the csv file containing the boxes and labels 
-        in the format (image_path, x, y, w, h, label)
+    data_source : DataSource
+        The DataSource instance with the path to the dataset images and
+        the csv file containing the boxes and labels in the format
+        (image_path, x, y, w, h, label)
     model : str
         The name of the pre-trained model to be used.
     dr_method : str
@@ -41,21 +41,21 @@ class ImageEDA:
     n_components : int
         Number of components that the dr_method will be using to the 
         data analysis.
+    pickle_path : str
+        The path for the pickle output file
     """
 
-    def __init__(self, dataset_name:str, image_path:str, annotations_path:str = "",
+    def __init__(self, dataset_name:str, data_source:DataSource = None,
                  model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100, 
-                 n_components:int = 2):
+                 n_components:int = 2, pickle_path:str = ""):
         """
         Initialize ImageEDA object based on a pre-existing file for 
         visualization or construct the object for further processing.
         """
-        if "pickle" in image_path:
-            pickle_path = image_path
+        if pickle_path:
             self.load_output(pickle_path)
         else:
-            self.image_path = image_path
-            self.annotations_path = annotations_path
+            self.data_source = data_source
             self.model_name = model
             self.dr_method = dr_method
             self.batch_size = batch_size
@@ -63,13 +63,13 @@ class ImageEDA:
             self.dr_object = None
             self.dataset_name = dataset_name
             self.y = None
-            self.load_model()
             self.load_dr_object()
             self.store_sample_labels()
+            self.feature_map = None
+        self.load_model()
     
     def store_sample_labels(self):
-        input_data = pd.read_csv(self.annotations_path)
-        self.y = input_data["label"].values
+        self.y = self.data_source.get_column_values("label")
         self.transformed_data = np.empty((self.y.shape[0], self.n_components))
 
     def __str__(self):
@@ -88,30 +88,43 @@ class ImageEDA:
 
         return self.model.layers[0].output.shape[1:]
 
+    def predict_feature_map(self):
+        """Pass the dataset through the selected model and store the output"""
+        n_samples = self.data_source.count()
+        self.feature_map = np.empty((n_samples,) + self.model.layers[-1].output.shape[1:])
+
+        input_shape = self.get_input_shape()
+        size = input_shape[:-1]
+        images_shape = (self.batch_size,) + input_shape
+
+        def process_batch(i, batch):
+            # TODO: get dtype from model
+            images = np.empty(images_shape, dtype=np.int)
+
+            for j, data in enumerate(batch):
+                images[j] = self.data_source.load_image(data.image_path, data.x, data.y, data.w, data.h, size)
+
+            self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
+
+        self.data_source.batch_process(self.batch_size, process_batch)
+        self.feature_map = normalize_data(self.feature_map)
+
     def partial_fit(self):
         """
         Fit the dr_method on the data on batches based on the batch_size
         parameter. 
-        The data is read based on the annotations_path and image_path 
-        attributes. After the fitting, the dr_object parameter will 
-        be able to transform the data later.
+        The data is read based on the data source annotation attributes.
+        After the fitting, the dr_object parameter will be able to
+        transform the data later.
         """
         if self.dr_method != "pca":
             raise Exception(f"{self.dr_method} does not support batch fit.")
 
-        input_data = pd.read_csv(self.annotations_path)
-        n_samples = input_data.shape[0]
+        n_samples = self.data_source.count()
 
         for i in range(0, n_samples//self.batch_size):
-            # TODO: get dtype from model
-            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
-
-            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
-                image = image.resize( self.get_input_shape()[:-1] )
-                image = np.array(image)
-                images[j] = image
-            self.dr_object.partial_fit( self.model(images) )
+            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+            self.dr_object.partial_fit( partial_feature_map )
 
     def transform(self):
         """
@@ -119,19 +132,11 @@ class ImageEDA:
         already be fitted previously.
         Feed the transformed_data attribute for further visualization.
         """
-        input_data = pd.read_csv(self.annotations_path)
-        n_samples = input_data.shape[0]
+        n_samples = self.data_source.count()
 
         for i in range(0, n_samples//self.batch_size):
-            images = np.empty((self.batch_size,) + self.get_input_shape(), dtype=np.int)
-        
-            for j, image_path in enumerate(input_data.iloc[i*self.batch_size : (i+1)*self.batch_size]["image_path"]):
-                image = PIL.Image.open(os.path.join(self.image_path,  image_path))
-                image = image.resize( self.get_input_shape()[:-1] ) 
-                image = np.array(image)
-                images[j] = image
-            
-            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( self.model(images) )
+            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( partial_feature_map )
 
     def load_dr_object(self):
         """Instantiate dr_object based on the selected dr_method"""
@@ -157,7 +162,8 @@ class ImageEDA:
 
     def load_output_file(self, output_pickle:str):
         """Open the output_pickle file and feed the object"""
-        data = pickle.load( open(output_pickle, "rb") )
+        with open(output_pickle, "rb") as output_file:
+            data = pickle.load(output_file)
         self.dataset_name = data["dataset_name"]
         self.model_name = data["model_name"]
         self.dr_method = data["dr_method"]
@@ -169,12 +175,14 @@ class ImageEDA:
 
     def load_output_object(self):
         """"Open the pickle file and feed the object"""
-        data = pickle.load( open(f"{self.dataset_name}_{self.model_name}\
-                                 _{self.dr_method}_{self.n_components}.pickle", "rb") )
+        with open(open(f"{self.dataset_name}_{self.model_name}\
+                        _{self.dr_method}_{self.n_components}.pickle", 
+                        "rb")) as output_file:
+            data = pickle.load(output_file)
         self.dr_object = data["dr_object"]
         self.transformed_data = data["transformed_data"]
 
-    def save_output(self, transformed_data, ipca):
+    def save_output(self):
         """Write the output into a pickle file"""
         with open(f"{self.dataset_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle",
                   'wb') as out_file:
@@ -194,11 +202,12 @@ class ImageEDA:
         # TODO: make configurable file with classes and associated ids
         classes = {}
 
-        f = open(file).readlines()
+        classes_file = open(file)
         
-        for index, line in enumerate(f):
+        for index, line in enumerate(classes_file.readlines()):
             classes[line.rstrip('\n')] = index
 
+        classes_file.close()
 
         # TODO: extend code to n_components
         pca_df = pd.DataFrame(columns = ['pca1','pca2'])
@@ -209,3 +218,7 @@ class ImageEDA:
 
         fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
 
+    def visualize_components(self, n_components=10):
+        """Plot number of components vs cummulative variance"""
+        pca = PCA().fit(self.feature_map)
+        plot_components(pca, n_components)

@@ -3,7 +3,30 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as PathEffects
 
+def plot_components(pca, n_components):
+    """Plot number of components vs cummulative variance"""
+    plt.rcParams["figure.figsize"] = (12,6)
+
+    fig, ax = plt.subplots()
+    xi = np.arange(1, n_components + 1, step=1)
+    y = np.cumsum(pca.explained_variance_ratio_[:n_components])
+
+    plt.ylim(0.0,1.1)
+    plt.plot(xi, y, marker='o', linestyle='--', color='b')
+
+    plt.xlabel('Number of Components')
+    plt.xticks(np.arange(0, n_components + 1, step=1))
+    plt.ylabel('Cumulative variance (%)')
+    plt.title('The number of components needed to explain variance')
+
+    plt.axhline(y=0.95, color='r', linestyle='-')
+    plt.text(0.5, 0.85, '95% cut-off threshold', color = 'red', fontsize=16)
+
+    ax.grid(axis='x')
+    plt.show()
+
 def fashion_scatter(x, colors, num_classes):
+    """Plot transformed data with respective labels"""
     # choose a color palette with seaborn.
     # num_classes = len(np.unique(colors))
     palette = np.array(sns.color_palette("hls", num_classes))
