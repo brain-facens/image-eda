@@ -35,5 +35,5 @@ image_eda.transform()
 ### Visualize 
 
 ```python
-image_eda.visualize()
+image_eda.visualize("path/to/classes_config.txt")
 ```
