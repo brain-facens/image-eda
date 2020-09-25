@@ -50,7 +50,11 @@ class LocalCsvSource(DataSource):
         
         self.file_path = file_path if isinstance(file_path, list) else [file_path]
         self.image_path = image_path if isinstance(image_path, list) else [image_path]
-        self.data = [pd.read_csv(self.file_path) for path in self.file_path]
+        
+        for(path in file_path)
+            self.data = pd.read_csv(path)
+
+        #self.data = [pd.read_csv(self.file_path) for path in self.file_path]
 
     def count(self):
         return self.data.shape[0]
