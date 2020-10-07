@@ -150,6 +150,18 @@ class ImageEDA:
                 include_top=True, weights='imagenet', input_tensor=None, input_shape=None,
                 pooling=None, classes=1000, classifier_activation='softmax'
             )
+            
+        elif self.model_name == "Xception":
+            tf.keras.applications.Xception(
+                include_top=True,
+                weights="imagenet",
+                input_tensor=None,
+                input_shape=None,
+                pooling=None,
+                classes=1000,
+                classifier_activation="softmax",
+            )
+            
             feature_layer = model.layers[-2].output
             self.model = tf.keras.Model(inputs = model.input, outputs = feature_layer)
 
