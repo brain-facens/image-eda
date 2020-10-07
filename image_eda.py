@@ -152,7 +152,7 @@ class ImageEDA:
             )
             
         elif self.model_name == "Xception":
-            tf.keras.applications.Xception(
+            model = tf.keras.applications.Xception(
                 include_top=True,
                 weights="imagenet",
                 input_tensor=None,
