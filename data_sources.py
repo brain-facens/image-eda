@@ -47,16 +47,23 @@ class LocalCsvSource(DataSource):
 
     def __init__(self, file_path, image_path):
         import pandas as pd
-        
-        self.file_path = file_path if isinstance(file_path, list) else [file_path]
-        self.image_path = image_path if isinstance(image_path, list) else [image_path]
 
-        
-        for file in self.file_path:
-            self.data = self.data.append(pd.read_csv(file))
-        
-        self.data["dataset_name"] = "dataset_name"
-        #self.data = [pd.read_csv(self.file_path) for path in self.file_path]
+        file_path = file_path if isinstance(file_path, list) else [file_path]
+        image_path = image_path if isinstance(image_path, list) else [image_path]
+        self.data = None
+
+        for f_path, i_path in zip(file_path, image_path):
+            local_file = pd.read_csv(f_path)
+            local_file["image_path"] = local_file["image_path"].apply(lambda x: os.path.join(i_path, x))
+
+            if self.data == None:
+                self.data = local_file
+            else:
+                self.data = self.data.append(local_file)
+
+        dataset_name = self.data['image_path'].apply(lambda x: x.split('/')[0])
+        #dataset_name = f_path.split("/")[-1].split(".")[0]
+        self.data["dataset_name"] = dataset_name
 
     def count(self):
         return self.data.shape[0]
@@ -70,7 +77,7 @@ class LocalCsvSource(DataSource):
 
     def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
         # Loads the image file
-        image = PIL.Image.open(os.path.join(self.image_path, file_path))
+        image = PIL.Image.open(file_path)
 
         # Crops and resizes the image
         return self.process_image(image, crop_x, crop_y, crop_w, crop_h, size)
