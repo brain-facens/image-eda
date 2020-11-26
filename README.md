@@ -7,7 +7,7 @@ Currently supporting PCA and t-SNE dimension reduction algorithms.
 
 ## Usage Guide:
 
-####The image-eda package works on the following steps:
+The image-eda package works on the following steps:
 
 ### Create the parameters dictionary for the ImageEDA object
 
