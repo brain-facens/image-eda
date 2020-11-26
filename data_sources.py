@@ -50,20 +50,18 @@ class LocalCsvSource(DataSource):
 
         file_path = file_path if isinstance(file_path, list) else [file_path]
         image_path = image_path if isinstance(image_path, list) else [image_path]
+        dataset_name = dataset_name if isinstance(dataset_name, list) else [dataset_name]
         self.data = None
 
-        for f_path, i_path in zip(file_path, image_path):
+        for f_path, i_path, d_name in zip(file_path, image_path, dataset_name):
             local_file = pd.read_csv(f_path)
             local_file["image_path"] = local_file["image_path"].apply(lambda x: os.path.join(i_path, x))
+            local_file["dataset_name"] = d_name
 
             if self.data == None:
                 self.data = local_file
             else:
                 self.data = self.data.append(local_file)
-
-        #dataset_name = self.data['image_path'].apply(lambda x: x.split('/')[0])
-        #dataset_name = f_path.split("/")[-1].split(".")[0]
-        self.data["dataset_name"] = dataset_name
 
     def count(self):
         return self.data.shape[0]
