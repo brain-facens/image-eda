@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.decomposition import PCA, IncrementalPCA
+from sklearn.manifold import TSNE
 import time
 import glob
 import pickle 
@@ -46,7 +47,7 @@ class ImageEDA:
     """
 
     def __init__(self, dataset_name:str, data_source:DataSource = None,
-                 model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100, 
+                 model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100,
                  n_components:int = 2, pickle_path:str = ""):
         """
         Initialize ImageEDA object based on a pre-existing file for 
@@ -117,14 +118,18 @@ class ImageEDA:
         After the fitting, the dr_object parameter will be able to
         transform the data later.
         """
-        if self.dr_method != "pca":
-            raise Exception(f"{self.dr_method} does not support batch fit.")
 
         n_samples = self.data_source.count()
 
-        for i in range(0, n_samples//self.batch_size):
-            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
-            self.dr_object.partial_fit( partial_feature_map )
+        if self.dr_method != "pca":
+            for i in range(0, n_samples//self.batch_size):
+                partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+                self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.fit_transform(partial_feature_map)
+
+        else:
+            for i in range(0, n_samples//self.batch_size):
+                partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+                self.dr_object.partial_fit(partial_feature_map)
 
     def transform(self):
         """
@@ -132,16 +137,24 @@ class ImageEDA:
         already be fitted previously.
         Feed the transformed_data attribute for further visualization.
         """
-        n_samples = self.data_source.count()
 
-        for i in range(0, n_samples//self.batch_size):
-            partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
-            self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform( partial_feature_map )
+        if self.dr_method == 'pca':
+
+            n_samples = self.data_source.count()
+
+            for i in range(0, n_samples//self.batch_size):
+                partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
+                self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.transform(partial_feature_map)
+
+        else:
+            pass
 
     def load_dr_object(self):
         """Instantiate dr_object based on the selected dr_method"""
         if self.dr_method == "pca":
             self.dr_object = IncrementalPCA(n_components=self.n_components)
+        else:
+            self.dr_object = TSNE(n_components=self.n_components, perplexity=100, n_iter=5000, learning_rate=500, init='pca')
 
     def load_model(self):
         """Load model based on the model_name"""
