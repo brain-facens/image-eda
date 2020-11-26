@@ -45,7 +45,7 @@ class DataSource:
 
 class LocalCsvSource(DataSource):
 
-    def __init__(self, file_path, image_path):
+    def __init__(self, file_path, image_path, dataset_name):
         import pandas as pd
 
         file_path = file_path if isinstance(file_path, list) else [file_path]
@@ -61,7 +61,7 @@ class LocalCsvSource(DataSource):
             else:
                 self.data = self.data.append(local_file)
 
-        dataset_name = self.data['image_path'].apply(lambda x: x.split('/')[0])
+        #dataset_name = self.data['image_path'].apply(lambda x: x.split('/')[0])
         #dataset_name = f_path.split("/")[-1].split(".")[0]
         self.data["dataset_name"] = dataset_name
 
