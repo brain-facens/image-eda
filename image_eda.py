@@ -25,7 +25,7 @@ class ImageEDA:
 
     Attributes
     ----------
-    dataset_name : str
+    experiment_name : str
         The name of the dataset being analysed, it is used to generate
         the output file.
     data_source : DataSource
@@ -46,7 +46,7 @@ class ImageEDA:
         The path for the pickle output file
     """
 
-    def __init__(self, dataset_name:str, data_source:DataSource = None,
+    def __init__(self, experiment_name:str, data_source:DataSource = None,
                  model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100,
                  n_components:int = 2, pickle_path:str = ""):
         """
@@ -62,7 +62,7 @@ class ImageEDA:
             self.batch_size = batch_size
             self.n_components = n_components
             self.dr_object = None
-            self.dataset_name = dataset_name
+            self.experiment_name = experiment_name
             self.y = None
             self.load_dr_object()
             self.store_sample_labels()
@@ -75,7 +75,7 @@ class ImageEDA:
 
     def __str__(self):
         return f"""
-        Dataset: {self.dataset_name}
+        Dataset: {self.experiment_name}
         Model: {self.model_name}
         DR Method: {self.dr_method}
         Batch size: {self.batch_size}
@@ -177,7 +177,7 @@ class ImageEDA:
         """Open the output_pickle file and feed the object"""
         with open(output_pickle, "rb") as output_file:
             data = pickle.load(output_file)
-        self.dataset_name = data["dataset_name"]
+        self.experiment_name = data["experiment_name"]
         self.model_name = data["model_name"]
         self.dr_method = data["dr_method"]
         self.dr_object = data["dr_object"]
@@ -188,7 +188,7 @@ class ImageEDA:
 
     def load_output_object(self):
         """"Open the pickle file and feed the object"""
-        with open(open(f"{self.dataset_name}_{self.model_name}\
+        with open(open(f"{self.experiment_name}_{self.model_name}\
                         _{self.dr_method}_{self.n_components}.pickle", 
                         "rb")) as output_file:
             data = pickle.load(output_file)
@@ -197,10 +197,10 @@ class ImageEDA:
 
     def save_output(self):
         """Write the output into a pickle file"""
-        with open(f"{self.dataset_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle",
+        with open(f"{self.experiment_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle",
                   'wb') as out_file:
             obj = dict()
-            obj["dataset_name"] = self.dataset_name
+            obj["experiment_name"] = self.experiment_name
             obj["model_name"] = self.model_name
             obj["dr_method"] = self.dr_method
             obj["dr_object"] = self.dr_object

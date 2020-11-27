@@ -24,7 +24,7 @@ data = {'dataset_name': ['dataset_name_01','dataset_name_02','dataset_name_xx'],
 image_eda = []
 for i in range(0,len(data['dataset_name'])):
 
-    image_eda.append(ImageEDA(dataset_name=data['dataset_name'][i],
+    image_eda.append(ImageEDA(experiment_name=data['dataset_name'][i],
                               data_source=LocalCsvSource(data['annot_path'][i],data['image_path'][i], data['dataset_name'][i]),
                               dr_method=data['dr_method'][i],
                               batch_size=10))
