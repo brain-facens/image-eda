@@ -11,6 +11,8 @@ import pickle
 from visualization import fashion_scatter, plot_components
 from utils import normalize_data, crop_box
 from data_sources import DataSource
+import mlflow
+import mlflow.tensorflow
 
 
 class ImageEDA:
@@ -102,7 +104,7 @@ class ImageEDA:
             images = np.empty(images_shape, dtype=np.int)
 
             for j, data in enumerate(batch):
-                images[j] = self.data_source.load_image(data.image_path, data.x, data.y, data.w, data.h, size)
+                images[j] = self.data_source.load_image(data, data.x, data.y, data.w, data.h, size)
 
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
@@ -234,3 +236,39 @@ class ImageEDA:
         """Plot number of components vs cummulative variance"""
         pca = PCA().fit(self.feature_map)
         plot_components(pca, n_components)
+
+def main():
+    """ Execute the workflow for training experiment 
+    (self, dataset_name:str, data_source:DataSource = None,
+                 model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100, 
+                 n_components:int = 2, pickle_path:str = ""):
+    
+    """
+    global args
+    parser = argparse.ArgumentParser(description="Main script for training splice-smartcam nn")
+    parser.add_argument("--dataset_name", type=str, help="Dataset's name")
+    parser.add_argument("--data_source", type=DataSource, help="Absolute data source path")
+    parser.add_argument("--model_name", type=str, help="Model name. ie: vgg16")
+    parser.add_argument("--dr_method", type=str, help="String representing DR method. ie: pca")
+    parser.add_argument("--batch_size", type=int, help="Batch size used for training")
+    parser.add_argument("--n_components", type=str, help="Components quantity")
+    parser.add_argument("--pickle_path", type=str, help="Absolute pickle path")
+    parser.add_argument("--run_name", type=str, help="Experiment run name for mlflow tracking")
+    args = parser.parse_args()
+    init()
+    mlflow.tensorflow.autolog()
+    experiment_id = os.getenv("MLFLOW_EXPERIMENT_ID")
+
+    with mlflow.start_run(experiment_id=experiment_id) as curr_run:
+        # start_run run_name parameter doesn't works using mlflow cli yet.
+        mlflow.set_tag("mlflow.runName", args.run_name)
+        os.environ["RUN_ID"] = curr_run.info.run_id
+
+        # Start training workflow
+        '''
+        ?
+        '''
+        tf.compat.v1.app.run(main=training)
+
+if __name__ == "__main__":
+    main()

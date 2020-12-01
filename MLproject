@@ -1,0 +1,22 @@
+name: image-eda
+
+entry_points:
+  local_training:
+    parameters:
+      dataset_name: {type=str, default: "Dataset's name"}
+      data_source: {type: DataSource, default: ""}
+      model_name: {type: string, default: ""}
+      dr_method: {type: string, default: ""}
+      batch_size: {type: int, default: }
+      n_components: {type: int, default: }
+      run_name: {type: str, default: }
+    command: "python main.py --data_path {data_path} --data_source {data_source} --model_name {model_name} --dr_method {dr_method} --batch_size {batch_size} --n_components {n_components} --dr_object {dr_object} --dataset_name{dataset_name} --y {y} --feature_map {feature_map}"
+  evaluate:
+    parameters:
+      set_name: {type: string, default: "val"}
+      classification_threshold: {type: float, default: 0.5}
+    command: "python evaluate.py --set_name {set_name} --classification_threshold {classification_threshold}"
+  export:
+    parameters:
+      n_detections: {type: float, default: 10}
+    command: "python export.py --n_detections {n_detections}"
