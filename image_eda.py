@@ -108,7 +108,7 @@ class ImageEDA:
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
         self.data_source.batch_process(self.batch_size, process_batch)
-        self.feature_map = normalize_data(self.feature_map)
+        self.feature_map = normalize_data(self.dr_object, self.feature_map)
 
     def partial_fit(self):
         """
@@ -122,9 +122,11 @@ class ImageEDA:
         n_samples = self.data_source.count()
 
         if self.dr_method != "pca":
-            for i in range(0, n_samples//self.batch_size):
+            '''for i in range(0, n_samples//self.batch_size):
                 partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
-                self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.fit_transform(partial_feature_map)
+                self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.fit_transform(partial_feature_map)'''
+
+            self.transformed_data = self.dr_object.fit_transform(self.feature_map)
 
         else:
             for i in range(0, n_samples//self.batch_size):
@@ -154,7 +156,7 @@ class ImageEDA:
         if self.dr_method == "pca":
             self.dr_object = IncrementalPCA(n_components=self.n_components)
         else:
-            self.dr_object = TSNE(n_components=self.n_components, perplexity=100, n_iter=5000, learning_rate=500, init='pca')
+            self.dr_object = TSNE(n_components=self.n_components, perplexity=100, n_iter=5000, learning_rate=200)
 
     def load_model(self):
         """Load model based on the model_name"""
