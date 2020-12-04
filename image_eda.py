@@ -177,8 +177,8 @@ class ImageEDA:
                 classifier_activation="softmax",
             )
             
-            feature_layer = model.layers[-2].output
-            self.model = tf.keras.Model(inputs = model.input, outputs = feature_layer)
+        feature_layer = model.layers[-2].output
+        self.model = tf.keras.Model(inputs = model.input, outputs = feature_layer)
 
     def load_output(self, *args):
         """Load output file based on existing file or object attributes"""
