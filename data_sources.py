@@ -45,12 +45,23 @@ class DataSource:
 
 class LocalCsvSource(DataSource):
 
-    def __init__(self, file_path, image_path):
+    def __init__(self, file_path, image_path, dataset_name):
         import pandas as pd
-        
-        self.file_path = file_path
-        self.image_path = image_path
-        self.data = pd.read_csv(self.file_path)
+
+        file_path = file_path if isinstance(file_path, list) else [file_path]
+        image_path = image_path if isinstance(image_path, list) else [image_path]
+        dataset_name = dataset_name if isinstance(dataset_name, list) else [dataset_name]
+        self.data = None
+
+        for f_path, i_path, d_name in zip(file_path, image_path, dataset_name):
+            local_file = pd.read_csv(f_path)
+            local_file["image_path"] = local_file["image_path"].apply(lambda x: os.path.join(i_path, x))
+            local_file["dataset_name"] = d_name
+
+            if self.data == None:
+                self.data = local_file
+            else:
+                self.data = self.data.append(local_file)
 
     def count(self):
         return self.data.shape[0]
@@ -64,7 +75,7 @@ class LocalCsvSource(DataSource):
 
     def load_image(self, file_path, crop_x, crop_y, crop_w, crop_h, size):
         # Loads the image file
-        image = PIL.Image.open(os.path.join(self.image_path, file_path))
+        image = PIL.Image.open(file_path)
 
         # Crops and resizes the image
         return self.process_image(image, crop_x, crop_y, crop_w, crop_h, size)
