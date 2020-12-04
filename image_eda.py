@@ -7,13 +7,13 @@ import tensorflow as tf
 from sklearn.decomposition import PCA, IncrementalPCA
 import time
 import glob
-import pickle 
+import pickle
+import mlflow
+import mlflow.tensorflow
+import argparse
 from visualization import fashion_scatter, plot_components
 from utils import normalize_data, crop_box
 from data_sources import DataSource
-import mlflow
-import mlflow.tensorflow
-
 
 class ImageEDA:
     """
@@ -74,6 +74,11 @@ class ImageEDA:
         self.y = self.data_source.get_column_values("label")
         self.transformed_data = np.empty((self.y.shape[0], self.n_components))
 
+    def init(self):
+        print("Initializing and configuring submodules")
+        subprocess.call("./init.sh")
+        print("Ended init.sh")
+
     def __str__(self):
         return f"""
         Dataset: {self.dataset_name}
@@ -104,7 +109,7 @@ class ImageEDA:
             images = np.empty(images_shape, dtype=np.int)
 
             for j, data in enumerate(batch):
-                images[j] = self.data_source.load_image(data, data.x, data.y, data.w, data.h, size)
+                images[j] = self.data_source.load_image(data.image_path, data.x, data.y, data.w, data.h, size)
 
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
@@ -236,18 +241,12 @@ class ImageEDA:
         """Plot number of components vs cummulative variance"""
         pca = PCA().fit(self.feature_map)
         plot_components(pca, n_components)
-
 def main():
-    """ Execute the workflow for training experiment 
-    (self, dataset_name:str, data_source:DataSource = None,
-                 model:str = "vgg16", dr_method:str = "pca", batch_size:int = 100, 
-                 n_components:int = 2, pickle_path:str = ""):
     
-    """
     global args
     parser = argparse.ArgumentParser(description="Main script for training splice-smartcam nn")
     parser.add_argument("--dataset_name", type=str, help="Dataset's name")
-    parser.add_argument("--data_source", type=DataSource, help="Absolute data source path")
+    parser.add_argument("--data_source", type=os.path, help="Absolute data source path")
     parser.add_argument("--model_name", type=str, help="Model name. ie: vgg16")
     parser.add_argument("--dr_method", type=str, help="String representing DR method. ie: pca")
     parser.add_argument("--batch_size", type=int, help="Batch size used for training")
@@ -269,6 +268,5 @@ def main():
         ?
         '''
         tf.compat.v1.app.run(main=training)
-
 if __name__ == "__main__":
     main()
