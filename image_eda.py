@@ -9,7 +9,6 @@ import time
 import glob
 import pickle
 import mlflow
-import mlflow.tensorflow
 import argparse
 from visualization import fashion_scatter, plot_components
 from utils import normalize_data, crop_box
@@ -73,11 +72,6 @@ class ImageEDA:
     def store_sample_labels(self):
         self.y = self.data_source.get_column_values("label")
         self.transformed_data = np.empty((self.y.shape[0], self.n_components))
-
-    def init(self):
-        print("Initializing and configuring submodules")
-        subprocess.call("./init.sh")
-        print("Ended init.sh")
 
     def __str__(self):
         return f"""
@@ -246,7 +240,7 @@ def main():
     global args
     parser = argparse.ArgumentParser(description="Main script for training splice-smartcam nn")
     parser.add_argument("--dataset_name", type=str, help="Dataset's name")
-    parser.add_argument("--data_source", type=os.path, help="Absolute data source path")
+    parser.add_argument("--data_source", type=os.PathLike, help="Absolute data source path")
     parser.add_argument("--model_name", type=str, help="Model name. ie: vgg16")
     parser.add_argument("--dr_method", type=str, help="String representing DR method. ie: pca")
     parser.add_argument("--batch_size", type=int, help="Batch size used for training")
@@ -264,9 +258,7 @@ def main():
         os.environ["RUN_ID"] = curr_run.info.run_id
 
         # Start training workflow
-        '''
-        ?
-        '''
+        
         tf.compat.v1.app.run(main=training)
 if __name__ == "__main__":
     main()
