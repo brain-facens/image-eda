@@ -3,14 +3,14 @@ name: image-eda
 entry_points:
   local_training:
     parameters:
-      model_name: {type: str, default: "ImageEDA"}
-      dataset_name: {type: str, default: "Dataset's name"}
-      data_source: {type: str, default: "./Documents/BRAIN/splice-pistol/"}
-      annotation_source: {type: str, default: "./Documents/BRAIN/splice-pistol/val.csv"}
-      dr_method: {type: str, default: "pca"}
-      batch_size: {type: int, default: 20}
-      n_components: {type: int, default: 2}
-      run_name: {type: str, default: 0}
+      model_name: {type: string, default: "ImageEDA"}
+      dataset_name: {type: string, default: "Dataset's name"}
+      data_source: {type: string, default: "./Documents/BRAIN/splice-pistol/"}
+      annotation_source: {type: string, default: "./Documents/BRAIN/splice-pistol/val.csv"}
+      dr_method: {type: string, default: "pca"}
+      batch_size: {type: integer, default: 20}
+      n_components: {type: integer, default: 2}
+      run_name: {type: integer, default: 0}
     command: "python main.py --model_name {model_name} --dataset_name {dataset_name} --data_source {data_source} --annotation_source {annotation_source} --dr_method {dr_method} --batch_size {batch_size} --n_components {n_components} --run_name {run_name}"
   evaluate:
     parameters:
