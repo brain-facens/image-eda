@@ -255,15 +255,14 @@ def main():
     global args
     parser = argparse.ArgumentParser(description="Main script for training splice-smartcam nn")
     parser.add_argument("--dataset_name", type=str, help="Dataset's name")
-    parser.add_argument("--data_source", type=os.PathLike, help="Absolute data source path")
+    parser.add_argument("--data_source", type=str, help="Absolute data source path")
+    parser.add_argument("--annotation_source", type=str, help="Absolute data annotation path")
     parser.add_argument("--model_name", type=str, help="Model name. ie: vgg16")
     parser.add_argument("--dr_method", type=str, help="String representing DR method. ie: pca")
     parser.add_argument("--batch_size", type=int, help="Batch size used for training")
-    parser.add_argument("--n_components", type=str, help="Components quantity")
-    parser.add_argument("--pickle_path", type=str, help="Absolute pickle path")
+    parser.add_argument("--n_components", type=int, help="Components quantity")
     parser.add_argument("--run_name", type=str, help="Experiment run name for mlflow tracking")
     args = parser.parse_args()
-    init()
     mlflow.tensorflow.autolog()
     experiment_id = os.getenv("MLFLOW_EXPERIMENT_ID")
 
