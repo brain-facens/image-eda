@@ -4,20 +4,11 @@ entry_points:
   local_training:
     parameters:
       model_name: {type: string, default: "vgg16"}
-      dataset_name: {type: string, default: "Dataset's name"}
-      data_source: {type: string, default: "./Documents/BRAIN/splice-pistol/"}
+      dataset_name: {type: string, default: "Splice-pistol"}
+      data_source: {type: string, default: "./Documents/BRAIN/splice-pistol/val/"}
       annotation_source: {type: string, default: "./Documents/BRAIN/splice-pistol/val.csv"}
       dr_method: {type: string, default: "pca"}
-      batch_size: {type: float, default: 20}
+      batch_size: {type: float, default: 5}
       n_components: {type: float, default: 2}
-      run_name: {type: float, default: 0}
-    command: "python main.py --model_name {model_name} --dataset_name {dataset_name} --data_source {data_source} --annotation_source {annotation_source} --dr_method {dr_method} --batch_size {batch_size} --n_components {n_components} --run_name {run_name}"
-  evaluate:
-    parameters:
-      set_name: {type: string, default: "val"}
-      classification_threshold: {type: float, default: 0.5}
-    command: "python evaluate.py --set_name {set_name} --classification_threshold {classification_threshold}"
-  export:
-    parameters:
-      n_detections: {type: float, default: 10}
-    command: "python export.py --n_detections {n_detections}"
+      run_name: {type: string, default: ""}
+    command: "python mlflow_init.py --model_name {model_name} --dataset_name {dataset_name} --data_source {data_source} --annotation_source {annotation_source} --dr_method {dr_method} --batch_size {batch_size} --n_components {n_components} --run_name {run_name}"
