@@ -11,6 +11,8 @@ import glob
 import pickle
 import mlflow
 import argparse
+import tempfile
+import matplotlib
 from visualization import fashion_scatter, plot_components
 from utils import normalize_data, crop_box
 from data_sources import DataSource
@@ -109,7 +111,7 @@ class ImageEDA:
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
         self.data_source.batch_process(self.batch_size, process_batch)
-        self.feature_map = normalize_data(self.dr_object, self.feature_map)
+        self.feature_map = normalize_data(self.dr_method, self.feature_map)
 
     def partial_fit(self):
         """
@@ -244,7 +246,15 @@ class ImageEDA:
         top_two_comp = pca_df[['pca1','pca2']]
         labels = np.array([classes[x] for x in self.y])
 
-        fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
+        x,_,_,_ = fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
+        
+        
+        '''Log result figure to MLflow'''
+
+        _, path = tempfile.mkstemp(suffix='.png')
+        x.savefig(path)
+        mlflow.log_artifact(path)
+        os.remove(path)
 
     def visualize_components(self, n_components=10):
         """Plot number of components vs cummulative variance"""
@@ -271,10 +281,6 @@ def main():
         mlflow.set_tag("mlflow.runName", args.run_name)
         os.environ["RUN_ID"] = curr_run.info.run_id
 
-        # Start training workflow
-        '''
-        ?
-        '''
-        tf.compat.v1.app.run(main=training)
+        
 if __name__ == "__main__":
     main()
