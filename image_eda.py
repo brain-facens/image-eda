@@ -251,10 +251,11 @@ class ImageEDA:
         
         '''Log result figure to MLflow'''
 
-        _, path = tempfile.mkstemp(suffix='.png')
+        _, path = tempfile.mkstemp(prefix=self.experiment_name + '_', suffix='.png')
         x.savefig(path)
         mlflow.log_artifact(path)
         os.remove(path)
+        mlflow.log_artifact(f"{self.experiment_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle")
 
     def visualize_components(self, n_components=10):
         """Plot number of components vs cummulative variance"""
