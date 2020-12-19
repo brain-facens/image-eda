@@ -30,8 +30,10 @@ def main():
         
         mlflow.set_tag("mlflow.runName", args.run_name)
         os.environ["RUN_ID"] = curr_run.info.run_id
-       
-        for i in enumerate(args.dataset_name):
+
+        image_eda = []
+
+        for i in range(len(args.dataset_name)):
             image_eda.append(ImageEDA(experiment_name=args.experiment_name, 
             data_source=LocalCsvSource(args.annotation_path[i],args.image_path[i], args.dataset_name[i]), 
             dr_method=args.dr_method[i], batch_size=args.batch_size, n_components=args.n_components))
