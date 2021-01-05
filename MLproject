@@ -3,12 +3,13 @@ name: image-eda
 entry_points:
   experiment:
     parameters:
-      model_name: {type: string, default: ""}
-      dataset_name: {type: string, default: ""}
+      model_name: {type: string, default: "vgg16"}
+      experiment_name: {type: string, default: "experiment_01"}
+      dataset_name: {type: string, default: "dataset_name_01"}
       image_path: {type: string, default: "/path/to/images"}
       annotation_path: {type: string, default: "/path/to/annotation.csv"}
       dr_method: {type: string, default: "pca"}
       batch_size: {type: float, default: 5}
       n_components: {type: float, default: 2}
-      run_name: {type: string, default: ""}
-    command: "python mlflow_init.py --model_name {model_name} --dataset_name {dataset_name} --image_path {image_path} --annotation_path {annotation_path} --dr_method {dr_method} --batch_size {batch_size} --n_components {n_components} --run_name {run_name}"
+      run_name: {type: string, default: "run"}
+    command: "python mlflow_init.py --model_name {model_name} --experiment_name {experiment_name} --dataset_name {dataset_name} --image_path {image_path} --annotation_path {annotation_path} --dr_method {dr_method} --batch_size {batch_size} --n_components {n_components} --run_name {run_name}"
