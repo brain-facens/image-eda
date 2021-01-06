@@ -40,6 +40,7 @@ def main():
             image_eda[i].predict_feature_map()
             image_eda[i].partial_fit()
             image_eda[i].transform()
+            image_eda[i].save_output()
             image_eda[i].visualize('classes_config.txt')
 
 
