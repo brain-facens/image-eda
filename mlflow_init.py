@@ -1,4 +1,5 @@
 import os
+import sys
 import mlflow
 import argparse
 from image_eda import ImageEDA
@@ -26,26 +27,25 @@ def main():
     annotation_path = args.annotation_path.split()
     dr_method = args.dr_method.split()
 
-    with mlflow.start_run(experiment_id=experiment_id) as curr_run:
-        
-        mlflow.set_tag("mlflow.runName", args.run_name)
-        os.environ["RUN_ID"] = curr_run.info.run_id
+    if (len(dataset_name) + len(image_path) - len(annotation_path) - len(dr_method)) != 0:
+        print('\nError: Incompatible input.\nDataset name, image path, annotation path and dr method arrays MUST have the same length.')
+    else:
+        with mlflow.start_run(experiment_id=experiment_id) as curr_run:
+            
+            mlflow.set_tag("mlflow.runName", args.run_name)
+            os.environ["RUN_ID"] = curr_run.info.run_id
 
-        image_eda = []
+            image_eda = []
 
-        for i in range(len(dataset_name)):
-            image_eda.append(ImageEDA(experiment_name=args.experiment_name, 
-            data_source=LocalCsvSource(annotation_path[i],image_path[i], dataset_name[i]), 
-            dr_method=dr_method[i], batch_size=args.batch_size, n_components=args.n_components))
-            image_eda[i].predict_feature_map()
-            image_eda[i].partial_fit()
-            image_eda[i].transform()
-            image_eda[i].save_output()
-            image_eda[i].visualize('classes_config.txt')
-
-
-
-        
+            for i in range(len(dataset_name)):
+                image_eda.append(ImageEDA(experiment_name=args.experiment_name, 
+                data_source=LocalCsvSource(annotation_path[i],image_path[i], dataset_name[i]), 
+                dr_method=dr_method[i], batch_size=args.batch_size, n_components=args.n_components))
+                image_eda[i].predict_feature_map()
+                image_eda[i].partial_fit()
+                image_eda[i].transform()
+                image_eda[i].save_output()
+                image_eda[i].mlflow_log('classes_config.txt')
 
 if __name__ == "__main__":
     main()

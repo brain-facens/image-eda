@@ -125,10 +125,6 @@ class ImageEDA:
         n_samples = self.data_source.count()
 
         if self.dr_method != "pca":
-            '''for i in range(0, n_samples//self.batch_size):
-                partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
-                self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.fit_transform(partial_feature_map)'''
-
             self.transformed_data = self.dr_object.fit_transform(self.feature_map)
 
         else:
@@ -229,7 +225,6 @@ class ImageEDA:
 
     def visualize(self, file):
         """Plot the transformed_data and show their classes"""
-        # TODO: make configurable file with classes and associated ids
         classes = {}
 
         classes_file = open(file)
@@ -247,11 +242,14 @@ class ImageEDA:
         labels = np.array([classes[x] for x in self.y])
 
         x,_,_,_ = fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
-        
-        
-        '''Log result figure to MLflow'''
 
-        _, path = tempfile.mkstemp(prefix=self.experiment_name + '_', suffix='.png')
+        return x
+    
+    def mlflow_log(self, file):
+
+        x = self.visualize(file)
+
+        _, path = tempfile.mkstemp(prefix=f"{self.experiment_name}_ {self.model_name}_{self.dr_method}_{self.n_components}_result_", suffix='.png')
         x.savefig(path)
         mlflow.log_artifact(path)
         os.remove(path)
@@ -261,27 +259,3 @@ class ImageEDA:
         """Plot number of components vs cummulative variance"""
         pca = PCA().fit(self.feature_map)
         plot_components(pca, n_components)
-def main():
-    
-    global args
-    parser = argparse.ArgumentParser(description="Main script for training splice-smartcam nn")
-    parser.add_argument("--dataset_name", type=str, help="Dataset's name")
-    parser.add_argument("--data_source", type=str, help="Absolute data source path")
-    parser.add_argument("--annotation_source", type=str, help="Absolute data annotation path")
-    parser.add_argument("--model_name", type=str, help="Model name. ie: vgg16")
-    parser.add_argument("--dr_method", type=str, help="String representing DR method. ie: pca")
-    parser.add_argument("--batch_size", type=int, help="Batch size used for training")
-    parser.add_argument("--n_components", type=int, help="Components quantity")
-    parser.add_argument("--run_name", type=str, help="Experiment run name for mlflow tracking")
-    args = parser.parse_args()
-    mlflow.tensorflow.autolog()
-    experiment_id = os.getenv("MLFLOW_EXPERIMENT_ID")
-
-    with mlflow.start_run(experiment_id=experiment_id) as curr_run:
-        # start_run run_name parameter doesn't works using mlflow cli yet.
-        mlflow.set_tag("mlflow.runName", args.run_name)
-        os.environ["RUN_ID"] = curr_run.info.run_id
-
-        
-if __name__ == "__main__":
-    main()
