@@ -33,8 +33,6 @@ def main():
         with mlflow.start_run(experiment_id=experiment_id) as curr_run:
             
             mlflow.set_tag("mlflow.runName", args.run_name)
-            os.environ["RUN_ID"] = curr_run.info.run_id
-
             image_eda = []
 
             for i in range(len(dataset_name)):
