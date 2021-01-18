@@ -64,3 +64,17 @@ for i in range(0,len(data['dataset_name'])):
 image_eda = ImageEDA("dataset_name", pickle_path="dataset_name_vgg16_dr_method_.pickle")
 image_eda.visualize("classes_config.txt")
 ```
+
+## Running experiment with MLfLow
+
+```sh
+mlflow run . -e experiment --no-conda \
+-P experiment_name="Experiment" \
+-P model_name="vgg16"
+-P dataset_name="dataset_name_01 dataset_name_02 dataset_name_xx" \
+-P image_path="path/to/images_01 path/to/images_02 path/to/images_xx" \
+-P annotation_path="path/to/annotations_01.csv path/to/annotations_02.csv path/to/annotations_xx.csv" \
+-P dr_method="t-sne pca pca" \
+-P batch_size=5 \
+-P n_components=2 \
+``` 

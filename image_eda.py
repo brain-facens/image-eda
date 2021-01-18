@@ -8,11 +8,14 @@ from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.manifold import TSNE
 import time
 import glob
-import pickle 
+import pickle
+import mlflow
+import argparse
+import tempfile
+import matplotlib
 from visualization import fashion_scatter, plot_components
 from utils import normalize_data, crop_box
 from data_sources import DataSource
-
 
 class ImageEDA:
     """
@@ -108,7 +111,7 @@ class ImageEDA:
             self.feature_map[i*self.batch_size : (i+1)*self.batch_size] = self.model(images)
 
         self.data_source.batch_process(self.batch_size, process_batch)
-        self.feature_map = normalize_data(self.dr_object, self.feature_map)
+        self.feature_map = normalize_data(self.dr_method, self.feature_map)
 
     def partial_fit(self):
         """
@@ -122,10 +125,6 @@ class ImageEDA:
         n_samples = self.data_source.count()
 
         if self.dr_method != "pca":
-            '''for i in range(0, n_samples//self.batch_size):
-                partial_feature_map = self.feature_map[i*self.batch_size : (i+1)*self.batch_size]
-                self.transformed_data[i*self.batch_size : (i+1)*self.batch_size] = self.dr_object.fit_transform(partial_feature_map)'''
-
             self.transformed_data = self.dr_object.fit_transform(self.feature_map)
 
         else:
@@ -226,7 +225,6 @@ class ImageEDA:
 
     def visualize(self, file):
         """Plot the transformed_data and show their classes"""
-        # TODO: make configurable file with classes and associated ids
         classes = {}
 
         classes_file = open(file)
@@ -243,7 +241,19 @@ class ImageEDA:
         top_two_comp = pca_df[['pca1','pca2']]
         labels = np.array([classes[x] for x in self.y])
 
-        fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
+        x,_,_,_ = fashion_scatter(top_two_comp.values, labels, len(classes.keys()))
+
+        return x
+    
+    def mlflow_log(self, file):
+
+        x = self.visualize(file)
+
+        _, path = tempfile.mkstemp(prefix=f"{self.experiment_name}_ {self.model_name}_{self.dr_method}_{self.n_components}_result_", suffix='.png')
+        x.savefig(path)
+        mlflow.log_artifact(path)
+        os.remove(path)
+        mlflow.log_artifact(f"{self.experiment_name}_{self.model_name}_{self.dr_method}_{self.n_components}.pickle")
 
     def visualize_components(self, n_components=10):
         """Plot number of components vs cummulative variance"""
